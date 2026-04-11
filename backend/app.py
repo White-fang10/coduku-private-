@@ -108,117 +108,158 @@ def calculate_score(difficulty: str, passed: int, total: int, time_taken: float)
 import requests
 import concurrent.futures
 
-def run_single_testcase(code, language, inp, expected, func_name, time_limit):
-    """Executes a single test case LOCALLY on the server machine."""
-    import subprocess
-    import tempfile
+def _stdin_from_input(inp):
+    """Convert a test case input (any type) to a stdin string."""
     import json
-    import time
-    
-    # Supported languages locally
-    output = ""
-    error = ""
-    start_time = time.time()
-    
+    if inp is None or inp == [] or inp == "":
+        return ""
+    if isinstance(inp, str):
+        return inp
+    if isinstance(inp, list):
+        # List of lines — each element becomes one line
+        parts = []
+        for item in inp:
+            if isinstance(item, list):
+                parts.append(" ".join(str(x) for x in item))
+            else:
+                parts.append(str(item))
+        return "\n".join(parts)
+    return str(inp)
+
+
+def run_single_testcase(code, language, inp, expected, func_name, time_limit):
+    """
+    Executes a single test case using raw stdin/stdout — works for all languages.
+    Students write normal programs that read from stdin and print to stdout.
+    """
+    import subprocess, tempfile
+
+    stdin_data = _stdin_from_input(inp)
+    expected_str = str(expected).strip()
+
+    # Detect class name for Java (look for 'public class Foo', fallback to Main)
+    def _java_classname(src):
+        import re
+        m = re.search(r'public\s+class\s+(\w+)', src)
+        return m.group(1) if m else "Main"
+
     try:
         with tempfile.TemporaryDirectory() as tmp_dir:
-            file_path = ""
-            run_cmd = []
-            
-            if language == "python":
-                file_path = os.path.join(tmp_dir, "solution.py")
-                # Wrap for functional testing
-                wrapped_code = f"""
-import json, sys
-{code}
-try:
-    inp = {repr(inp)}
-    if isinstance(inp, list):
-        res = {func_name}(*inp)
-    elif isinstance(inp, dict):
-        res = {func_name}(**inp)
-    else:
-        res = {func_name}(inp)
-    print(json.dumps(res))
-except Exception as e:
-    print(str(e), file=sys.stderr)
-    sys.exit(1)
-"""
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(wrapped_code)
-                run_cmd = ["python", file_path]
-                
-            elif language == "javascript":
-                file_path = os.path.join(tmp_dir, "solution.js")
-                # Wrap for node functional testing
-                wrapped_code = f"""
-{code}
-try {{
-    const inp = {json.dumps(inp)};
-    const res = solution(...(Array.isArray(inp) ? inp : [inp]));
-    process.stdout.write(JSON.stringify(res));
-}} catch (e) {{
-    process.stderr.write(e.message);
-    process.exit(1);
-}}
-"""
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(wrapped_code)
-                run_cmd = ["node", file_path]
-                
-            elif language == "java":
-                # Java requires class name to match file name
-                file_path = os.path.join(tmp_dir, "Solution.java")
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(code)
-                # Compile
-                compile_res = subprocess.run(["javac", "Solution.java"], cwd=tmp_dir, capture_output=True, text=True)
-                if compile_res.returncode != 0:
-                    return {"input": inp, "expected": str(expected).strip(), "actual": "", "passed": False, "error": "Compilation Error: " + compile_res.stderr}
-                
-                run_cmd = ["java", "Solution"]
-                stdin_input = json.dumps(inp) if isinstance(inp, (list, dict)) else str(inp)
-                
-            else:
-                return {"input": inp, "expected": str(expected).strip(), "actual": "", "passed": False, "error": f"Language '{language}' not installed for local execution."}
 
-            # Execute
+            if language == "python":
+                fpath = os.path.join(tmp_dir, "sol.py")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                run_cmd = ["python", fpath]
+
+            elif language in ("javascript", "js"):
+                fpath = os.path.join(tmp_dir, "sol.js")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                run_cmd = ["node", fpath]
+
+            elif language == "java":
+                classname = _java_classname(code)
+                fpath = os.path.join(tmp_dir, f"{classname}.java")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                cr = subprocess.run(["javac", f"{classname}.java"],
+                                    cwd=tmp_dir, capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": "",
+                            "passed": False, "error": "Compilation Error: " + cr.stderr.strip()}
+                run_cmd = ["java", "-cp", tmp_dir, classname]
+
+            elif language in ("cpp", "c++"):
+                fpath = os.path.join(tmp_dir, "sol.cpp")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                out_bin = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["g++", "-o", out_bin, fpath],
+                                    capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": "",
+                            "passed": False, "error": "Compilation Error: " + cr.stderr.strip()}
+                run_cmd = [out_bin]
+
+            elif language == "c":
+                fpath = os.path.join(tmp_dir, "sol.c")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                out_bin = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["gcc", "-o", out_bin, fpath],
+                                    capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": "",
+                            "passed": False, "error": "Compilation Error: " + cr.stderr.strip()}
+                run_cmd = [out_bin]
+
+            elif language in ("csharp", "c#", "cs"):
+                fpath = os.path.join(tmp_dir, "sol.cs")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                out_bin = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["csc", "-out:" + out_bin, fpath],
+                                    capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": "",
+                            "passed": False, "error": "Compilation Error: " + cr.stderr.strip()}
+                run_cmd = ["mono", out_bin]
+
+            elif language == "go":
+                fpath = os.path.join(tmp_dir, "sol.go")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                run_cmd = ["go", "run", fpath]
+
+            elif language == "rust":
+                fpath = os.path.join(tmp_dir, "sol.rs")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                out_bin = os.path.join(tmp_dir, "sol")
+                cr = subprocess.run(["rustc", "-o", out_bin, fpath],
+                                    capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": "",
+                            "passed": False, "error": "Compilation Error: " + cr.stderr.strip()}
+                run_cmd = [out_bin]
+
+            elif language == "ruby":
+                fpath = os.path.join(tmp_dir, "sol.rb")
+                with open(fpath, "w", encoding="utf-8") as f:
+                    f.write(code)
+                run_cmd = ["ruby", fpath]
+
+            else:
+                return {"input": inp, "expected": expected_str, "actual": "",
+                        "passed": False,
+                        "error": f"Language '{language}' not available in local fallback. Start Docker to enable it."}
+
             try:
-                # Pass stdin if it's not handled by the wrapper
-                stdin_data = stdin_input if language == "java" else None
-                
                 proc = subprocess.run(
-                    run_cmd,
-                    input=stdin_data,
-                    cwd=tmp_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=time_limit
+                    run_cmd, input=stdin_data, cwd=tmp_dir,
+                    capture_output=True, text=True, timeout=time_limit
                 )
-                output = proc.stdout.strip()
-                error = proc.stderr.strip()
-                
-                passed = False
-                if proc.returncode == 0:
-                    if output == str(expected).strip():
-                        passed = True
-                    else:
-                        error = "Wrong Answer"
-                else:
-                    error = "Runtime Error: " + error
-                
+                actual = proc.stdout.strip()
+                stderr = proc.stderr.strip()
+
+                if proc.returncode != 0:
+                    return {"input": inp, "expected": expected_str, "actual": actual,
+                            "passed": False, "error": "Runtime Error: " + (stderr or "non-zero exit")}
+
+                passed = actual == expected_str
                 return {
-                    "input": inp,
-                    "expected": str(expected).strip(),
-                    "actual": output,
+                    "input": inp, "expected": expected_str, "actual": actual,
                     "passed": passed,
-                    "error": error if not passed else None
+                    "error": None if passed else f"Expected: {expected_str!r} | Got: {actual!r}"
                 }
             except subprocess.TimeoutExpired:
-                return {"input": inp, "expected": str(expected).strip(), "actual": "", "passed": False, "error": "Time Limit Exceeded"}
+                return {"input": inp, "expected": expected_str, "actual": "",
+                        "passed": False, "error": "Time Limit Exceeded"}
 
     except Exception as e:
-        return {"input": inp, "expected": str(expected).strip(), "actual": None, "passed": False, "error": f"Local executor error: {str(e)}"}
+        return {"input": inp, "expected": expected_str, "actual": "",
+                "passed": False, "error": f"Executor error: {str(e)}"}
 
 
 
@@ -299,7 +340,7 @@ def register():
             "name": name,
             "email": email,
             "house": house,
-            "role": "student"
+            "role": role
         }
     }), 201
 
@@ -389,6 +430,8 @@ def get_profile(target_uid=None):
 
     user["streak"] = streak
     user["badges"] = badges
+    user["unlocked_badges"] = user.get("unlocked_badges", [])
+    user["claimed_badges"] = user.get("claimed_badges", [])
     
     return jsonify(serialize(user))
 
@@ -414,6 +457,84 @@ def get_user_submissions():
     return jsonify(serialize(subs))
 
 
+@app.route("/api/user/set_house", methods=["POST"])
+@jwt_required()
+def set_house():
+    uid = get_jwt_identity()
+    data = request.get_json()
+    house = data.get("house")
+    character_id = data.get("character_id")
+
+    if not house:
+        return jsonify({"error": "house is required"}), 400
+
+    update_fields = {"house": house}
+    if character_id is not None:
+        update_fields["character_id"] = character_id
+
+    result = users_col.update_one(
+        {"_id": ObjectId(uid)},
+        {"$set": update_fields}
+    )
+
+    if result.matched_count == 0:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"message": "House updated successfully"})
+
+
+@app.route("/api/user/claim_badge", methods=["POST"])
+@jwt_required()
+def claim_badge():
+    uid = get_jwt_identity()
+    data = request.get_json() or {}
+    badge_id = data.get("badge_id")
+    if not badge_id:
+        return jsonify({"error": "No badge ID provided"}), 400
+    
+    user = users_col.find_one({"_id": ObjectId(uid)})
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    unlocked = user.get("unlocked_badges", [])
+    claimed = user.get("claimed_badges", [])
+    
+    if badge_id not in unlocked:
+        return jsonify({"error": "Badge is not unlocked yet"}), 403
+    if badge_id in claimed:
+        return jsonify({"message": "Badge already claimed"}), 200
+        
+    users_col.update_one({"_id": ObjectId(uid)}, {"$addToSet": {"claimed_badges": badge_id}})
+    return jsonify({"message": "Badge claimed successfully!"}), 200
+
+@app.route("/api/user/update_profile", methods=["POST"])
+@jwt_required()
+def update_profile():
+    uid = get_jwt_identity()
+    data = request.get_json()
+    name = data.get("name")
+    character_id = data.get("character_id")
+
+    update_fields = {}
+    if name and name.strip():
+        update_fields["name"] = name.strip()
+    if character_id is not None:
+        update_fields["character_id"] = character_id
+        
+    if not update_fields:
+        return jsonify({"message": "No changes provided"}), 400
+
+    result = users_col.update_one(
+        {"_id": ObjectId(uid)},
+        {"$set": update_fields}
+    )
+
+    if result.matched_count == 0:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"message": "Profile updated successfully"})
+
+
 # ─── Question Routes ──────────────────────────────────────────────────────────
 
 @app.route("/api/questions", methods=["GET"])
@@ -437,9 +558,10 @@ def get_questions():
 
     if setting and setting.get("value") and not is_teacher:
         comp_id = setting.get("value")
-        start_hour = setting.get("start_hour", 17)
-        end_hour = setting.get("end_hour", 22)
-        comp_window_active = start_hour <= now.hour < end_hour
+        now_str = datetime.now().strftime("%H:%M")
+        start_time = setting.get("start_time", "17:00")
+        end_time = setting.get("end_time", "22:00")
+        comp_window_active = start_time <= now_str <= end_time
         
         # Hide it by default from normal fetching if window is NOT active
         if not comp_window_active:
@@ -467,11 +589,11 @@ def get_question(question_id):
     if not is_teacher:
         setting = settings_col.find_one({"key": "competition_question"})
         if setting and setting.get("value") == question_id:
-            now = datetime.now()
-            start_hour = setting.get("start_hour", 17)
-            end_hour = setting.get("end_hour", 22)
-            if not (start_hour <= now.hour < end_hour):
-                return jsonify({"error": f"This trial is only available between {start_hour}:00 and {end_hour}:00."}), 403
+            now_str = datetime.now().strftime("%H:%M")
+            start_time = setting.get("start_time", "17:00")
+            end_time = setting.get("end_time", "22:00")
+            if not (start_time <= now_str <= end_time):
+                return jsonify({"error": f"This trial is only available between {start_time} and {end_time}."}), 403
 
     # Hide expected output from test cases shown to user
     q_out = serialize(q)
@@ -517,6 +639,11 @@ def submit_code():
     total  = exec_result["total"]
     score  = calculate_score(q["difficulty"], passed, total, elapsed)
 
+    # Compute /10 visible score for the popup
+    correctness_10 = round((passed / max(total, 1)) * 7.0, 1)
+    visible_score  = round(min(10.0, correctness_10), 1)
+    verdict = "Accepted" if passed == total and total > 0 else ("Partially Correct" if passed > 0 else "Wrong Answer")
+
     # Save submission
     sub_doc = {
         "user_id":        uid,
@@ -535,19 +662,33 @@ def submit_code():
     # Update user stats
     user = users_col.find_one({"_id": ObjectId(uid)})
     if user:
-        total_subs    = user.get("total_submissions", 0) + 1
-        total_score   = user.get("total_score", 0.0) + score
-        avg_score     = round(total_score / total_subs, 2)
-        # Count unique solved questions (passed all tests)
-        solved = submissions_col.count_documents({
-            "user_id": uid,
-            "passed_tests": {"$gt": 0},
-            "total_tests": {"$gt": 0},
-        })
+        pipeline = [
+            {"$match": {"user_id": uid}},
+            {"$group": {
+                "_id": "$question_id",
+                "max_score": {"$max": "$score"},
+                "is_solved": {
+                    "$max": {
+                        "$cond": [
+                            {"$and": [{"$gt": ["$passed_tests", 0]}, {"$gt": ["$total_tests", 0]}]},
+                            1,
+                            0
+                        ]
+                    }
+                }
+            }}
+        ]
+        stats = list(submissions_col.aggregate(pipeline))
+        
+        unique_attempts = len(stats)
+        total_score = sum(item.get("max_score", 0) for item in stats)
+        avg_score = round(total_score / unique_attempts, 2) if unique_attempts > 0 else 0.0
+        solved = sum(item.get("is_solved", 0) for item in stats)
+
         users_col.update_one(
             {"_id": ObjectId(uid)},
             {"$set": {
-                "total_submissions": total_subs,
+                "total_submissions": unique_attempts,
                 "total_score": total_score,
                 "average_score": avg_score,
                 "problems_solved": solved
@@ -556,68 +697,121 @@ def submit_code():
 
     return jsonify({
         "submission_id":  str(sub_result.inserted_id),
-        "score":          score,
+        "score":          visible_score,          # /10 for popup
+        "legacy_score":   score,                  # old scale for leaderboard
         "passed_tests":   passed,
         "total_tests":    total,
         "execution_time": elapsed,
-        "execution_result": exec_result["results"]
+        "verdict":        verdict,
+        "execution_result": exec_result["results"],
+        "score_breakdown": {
+            "correctness":   correctness_10,
+            "time_bonus":    0.0,
+            "memory_bonus":  0.0,
+            "visible_score": visible_score,
+        }
     })
 
 
 @app.route("/api/execute", methods=["POST"])
 @jwt_required()
 def execute_standalone():
-    """Runs a single piece of code without checking against a question's tests (for frontend testing)."""
+    """Run code with optional stdin — supports Python, JS, Java, C++, C, Go, Rust, Ruby, C#."""
+    import subprocess, tempfile, re
     data     = request.get_json()
     code     = data.get("code", "")
     language = data.get("language", "python").lower()
     stdin    = data.get("stdin", "")
-    
-    import subprocess, tempfile, os
-    
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        file_path = ""
-        run_cmd = []
-        
-        if language == "python":
-            file_path = os.path.join(tmp_dir, "solution.py")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(code)
-            run_cmd = ["python", file_path]
-        elif language == "javascript":
-            file_path = os.path.join(tmp_dir, "solution.js")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(code)
-            run_cmd = ["node", file_path]
-        elif language == "java":
-            file_path = os.path.join(tmp_dir, "Solution.java")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(code)
-            compile_res = subprocess.run(["javac", "Solution.java"], cwd=tmp_dir, capture_output=True, text=True)
-            if compile_res.returncode != 0:
-                return jsonify({"stdout": "", "stderr": compile_res.stderr, "error": "Compilation Error"}), 200
-            run_cmd = ["java", "Solution"]
-        else:
-            return jsonify({"error": f"Language '{language}' not supported locally."}), 400
 
-        try:
-            proc = subprocess.run(
-                run_cmd,
-                input=stdin,
-                cwd=tmp_dir,
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+    def _java_classname(src):
+        m = re.search(r'public\s+class\s+(\w+)', src)
+        return m.group(1) if m else "Main"
+
+    try:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            if language == "python":
+                fpath = os.path.join(tmp_dir, "sol.py")
+                open(fpath, "w", encoding="utf-8").write(code)
+                run_cmd = ["python", fpath]
+
+            elif language in ("javascript", "js"):
+                fpath = os.path.join(tmp_dir, "sol.js")
+                open(fpath, "w", encoding="utf-8").write(code)
+                run_cmd = ["node", fpath]
+
+            elif language == "java":
+                classname = _java_classname(code)
+                fpath = os.path.join(tmp_dir, f"{classname}.java")
+                open(fpath, "w", encoding="utf-8").write(code)
+                cr = subprocess.run(["javac", f"{classname}.java"],
+                                    cwd=tmp_dir, capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return jsonify({"stdout": "", "stderr": cr.stderr, "error": "Compilation Error"})
+                run_cmd = ["java", "-cp", tmp_dir, classname]
+
+            elif language in ("cpp", "c++"):
+                fpath = os.path.join(tmp_dir, "sol.cpp")
+                open(fpath, "w", encoding="utf-8").write(code)
+                out = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["g++", "-o", out, fpath], capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return jsonify({"stdout": "", "stderr": cr.stderr, "error": "Compilation Error"})
+                run_cmd = [out]
+
+            elif language == "c":
+                fpath = os.path.join(tmp_dir, "sol.c")
+                open(fpath, "w", encoding="utf-8").write(code)
+                out = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["gcc", "-o", out, fpath], capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return jsonify({"stdout": "", "stderr": cr.stderr, "error": "Compilation Error"})
+                run_cmd = [out]
+
+            elif language == "go":
+                fpath = os.path.join(tmp_dir, "sol.go")
+                open(fpath, "w", encoding="utf-8").write(code)
+                run_cmd = ["go", "run", fpath]
+
+            elif language == "rust":
+                fpath = os.path.join(tmp_dir, "sol.rs")
+                open(fpath, "w", encoding="utf-8").write(code)
+                out = os.path.join(tmp_dir, "sol")
+                cr = subprocess.run(["rustc", "-o", out, fpath], capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return jsonify({"stdout": "", "stderr": cr.stderr, "error": "Compilation Error"})
+                run_cmd = [out]
+
+            elif language == "ruby":
+                fpath = os.path.join(tmp_dir, "sol.rb")
+                open(fpath, "w", encoding="utf-8").write(code)
+                run_cmd = ["ruby", fpath]
+
+            elif language in ("csharp", "c#", "cs"):
+                fpath = os.path.join(tmp_dir, "sol.cs")
+                open(fpath, "w", encoding="utf-8").write(code)
+                out = os.path.join(tmp_dir, "sol.exe")
+                cr = subprocess.run(["csc", "-out:" + out, fpath], capture_output=True, text=True)
+                if cr.returncode != 0:
+                    return jsonify({"stdout": "", "stderr": cr.stderr, "error": "Compilation Error"})
+                run_cmd = ["mono", out]
+
+            else:
+                return jsonify({"stdout": "", "stderr": "",
+                                "error": f"'{language}' not available locally. Start Docker to enable it."})
+
+            proc = subprocess.run(run_cmd, input=stdin, cwd=tmp_dir,
+                                  capture_output=True, text=True, timeout=10)
             return jsonify({
                 "stdout": proc.stdout,
                 "stderr": proc.stderr,
                 "error": None if proc.returncode == 0 else "Runtime Error"
             })
-        except subprocess.TimeoutExpired:
-            return jsonify({"stdout": "", "stderr": "Time Limit Exceeded", "error": "Timeout"}), 200
-        except Exception as e:
-            return jsonify({"stdout": "", "stderr": str(e), "error": "System Error"}), 200
+
+    except subprocess.TimeoutExpired:
+        return jsonify({"stdout": "", "stderr": "Time Limit Exceeded", "error": "Timeout"})
+    except Exception as e:
+        return jsonify({"stdout": "", "stderr": str(e), "error": "System Error"})
 
 
 # ─── Leaderboard Routes ───────────────────────────────────────────────────────
@@ -626,15 +820,15 @@ def execute_standalone():
 @jwt_required()
 def global_leaderboard():
     # Check if competition mode is active
-    now = datetime.now()
+    now_str = datetime.now().strftime("%H:%M")
     setting = settings_col.find_one({"key": "competition_question"})
     
     comp_active = False
     comp_q_id = None
     if setting:
-        start_hour = setting.get("start_hour", 17)
-        end_hour = setting.get("end_hour", 22)
-        comp_active = start_hour <= now.hour < end_hour
+        start_time = setting.get("start_time", "17:00")
+        end_time = setting.get("end_time", "22:00")
+        comp_active = start_time <= now_str <= end_time
         comp_q_id = setting.get("value")
 
     if comp_active and comp_q_id:
@@ -695,15 +889,15 @@ def global_leaderboard():
 @jwt_required()
 def house_leaderboard():
     # Check if competition mode is active
-    now = datetime.now()
+    now_str = datetime.now().strftime("%H:%M")
     setting = settings_col.find_one({"key": "competition_question"})
     
     comp_active = False
     comp_q_id = None
     if setting:
-        start_hour = setting.get("start_hour", 17)
-        end_hour = setting.get("end_hour", 22)
-        comp_active = start_hour <= now.hour < end_hour
+        start_time = setting.get("start_time", "17:00")
+        end_time = setting.get("end_time", "22:00")
+        comp_active = start_time <= now_str <= end_time
         comp_q_id = setting.get("value")
 
     house_data = {}
@@ -894,11 +1088,11 @@ def manage_competition():
     if request.method == "POST":
         data = request.get_json()
         q_id = data.get("question_id")
-        start_h = int(data.get("start_hour", 17))
-        end_h = int(data.get("end_hour", 22))
+        start_time = data.get("start_time", "17:00")
+        end_time = data.get("end_time", "22:00")
         settings_col.update_one(
             {"key": "competition_question"},
-            {"$set": {"value": q_id, "start_hour": start_h, "end_hour": end_h}},
+            {"$set": {"value": q_id, "start_time": start_time, "end_time": end_time}},
             upsert=True
         )
         return jsonify({"message": "Competition question updated successfully"})
@@ -909,17 +1103,19 @@ def manage_competition():
 
 @app.route("/api/competition/status", methods=["GET"])
 def competition_status():
-    now = datetime.now()
+    now_str = datetime.now().strftime("%H:%M")
     res = settings_col.find_one({"key": "competition_question"})
-    start_hour = res.get("start_hour", 17) if res else 17
-    end_hour = res.get("end_hour", 22) if res else 22
-    active = start_hour <= now.hour < end_hour
+    start_time = res.get("start_time", "17:00") if res else "17:00"
+    end_time = res.get("end_time", "22:00") if res else "22:00"
+    # active = start_time <= now_str <= end_time
+    # Paused for project work as requested by user
+    active = False
     return jsonify({
         "active": active,
         "question_id": res["value"] if res else None,
-        "current_hour": now.hour,
-        "start_hour": start_hour,
-        "end_hour": end_hour
+        "current_time": now_str,
+        "start_time": start_time,
+        "end_time": end_time
     })
 
 

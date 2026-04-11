@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  judge0-simple:
+    image: judge0/judge0:1.13.0
+    container_name: judge0_simple
+    privileged: true
+    ports:
+      - "2358:2358"
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/judge0db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Disable advanced features for WSL2 compatibility
+      ENABLE_BATCHED_RUNS: "false"
+      USE_ADVANCED_CGROUPS: "false"
+      ENABLE_WAIT_RESULT: "true"
+      ENABLE_COMPILER_OPTIONS: "false"
+      
+      # Rails Environment
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+    
+    depends_on:
+      - postgres
+      - redis
+    
+    networks:
+      - coduku
+
+  judge0-worker:
+    image: judge0/judge0:1.13.0
+    container_name: judge0_worker_simple
+    privileged: true
+    command: bash -c "cd /api && QUEUES='*' bundle exec rake resque:work"
+    restart: unless-stopped
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/judge0db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Rails Environment
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+    
+    depends_on:
+      - judge0-simple
+      - postgres
+      - redis
+    
+    networks:
+      - coduku
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coduku
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+      - ./init_judge0_db.sql:/docker-entrypoint-initdb.d/02_judge0.sql:ro
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+
+networks:
+  coduku:
+    driver: bridge

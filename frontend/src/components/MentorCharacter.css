@@ -1,0 +1,107 @@
+/* ── Mentor Character — Peeks from right edge of screen ── */
+.mentor-character {
+  position: fixed;
+  bottom: 72px;
+  right: 0;
+  width: 108px;
+  z-index: 500;
+  cursor: pointer;
+  transform: translateX(64px);
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    right     0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Peek out on hover */
+.mentor-character:hover {
+  transform: translateX(0);
+}
+
+/* When mentor panel is open: shift left to sit beside panel */
+.mentor-character.panel-open {
+  right: 420px;
+  transform: translateX(0);
+}
+
+/* ── Speech bubble (appears on hover, hides when panel open) ── */
+.mentor-bubble {
+  position: absolute;
+  bottom: 100%;
+  right: 10px;
+  width: 172px;
+  background: var(--mentor-primary, #6c3de8);
+  border: 1.5px solid var(--mentor-accent, #a78bfa);
+  border-radius: 14px 14px 0 14px;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.7rem;
+  font-family: 'Inter', sans-serif;
+  color: #fff;
+  line-height: 1.45;
+  box-shadow: 0 6px 24px var(--mentor-glow, rgba(108,61,232,0.45));
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.85) translateY(6px);
+  transform-origin: bottom right;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  white-space: normal;
+  margin-bottom: 6px;
+}
+.mentor-character:not(.panel-open):hover .mentor-bubble {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+/* ── SVG figure with floating animation ── */
+.mentor-char-figure {
+  width: 100%;
+  animation: mentor-bob 3.2s ease-in-out infinite;
+  filter: drop-shadow(0 10px 22px var(--mentor-glow, rgba(108,61,232,0.5)));
+  position: relative;
+}
+.mentor-char-figure svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+@keyframes mentor-bob {
+  0%,  100% { transform: translateY(0px);   }
+  50%        { transform: translateY(-9px);  }
+}
+
+/* Glow pulse on the figure while hovered */
+.mentor-character:hover .mentor-char-figure {
+  filter: drop-shadow(0 10px 28px var(--mentor-glow, rgba(108,61,232,0.7)));
+}
+
+/* ── Name tag ── */
+.mentor-nametag {
+  font-family: 'Inter', 'Outfit', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #fff;
+  background: var(--mentor-primary, #6c3de8);
+  border: 1.5px solid var(--mentor-accent, #a78bfa);
+  border-radius: 99px;
+  padding: 0.18rem 0.55rem;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px var(--mentor-glow, rgba(108,61,232,0.4));
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Responsive: hide on small screens ── */
+@media (max-width: 900px) {
+  .mentor-character.panel-open {
+    right: 0;
+  }
+  .mentor-bubble { width: 140px; }
+}

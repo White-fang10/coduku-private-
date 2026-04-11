@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './AuthPage.css';
 import HouseLogo from '../components/HouseLogo';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const HOUSES = [
   { name: 'Gryffindor', color: '#ae0001', gold: '#d4af37', trait: 'Brave & Bold' },
@@ -17,6 +17,7 @@ export default function AuthPage({ onLogin }) {
   const [name, setName]                     = useState('');
   const [email, setEmail]                   = useState('');
   const [password, setPassword]             = useState('');
+  const [showPassword, setShowPassword]     = useState(false);
   const [teacherSecret, setTeacherSecret]   = useState('');
   const [loading, setLoading]               = useState(false);
   const [error, setError]                   = useState('');
@@ -52,17 +53,6 @@ export default function AuthPage({ onLogin }) {
 
   return (
     <div className="auth-root">
-      {/* Animated starfield background */}
-      <div className="auth-bg" aria-hidden="true">
-        <div className="auth-orb orb-1" />
-        <div className="auth-orb orb-2" />
-        <div className="auth-orb orb-3" />
-        <div className="auth-stars">
-          {[...Array(30)].map((_, i) => (
-            <span key={i} className="auth-star" style={{ '--si': i }} />
-          ))}
-        </div>
-      </div>
 
       <div className="auth-container">
         {/* ── Left Panel ── */}
@@ -95,13 +85,6 @@ export default function AuthPage({ onLogin }) {
             ))}
           </div>
 
-          {/* Feature list */}
-          <ul className="auth-features">
-            <li><span className="feature-dot" />Real-time code execution</li>
-            <li><span className="feature-dot" />House &amp; global leaderboards</li>
-            <li><span className="feature-dot" />Free code testing</li>
-            <li><span className="feature-dot" />Dynamic scoring system</li>
-          </ul>
         </div>
 
         {/* ── Right Panel (Form) ── */}
@@ -161,14 +144,23 @@ export default function AuthPage({ onLogin }) {
               {mode === 'register' && userType === 'teacher' && (
                 <div className="form-group">
                   <label className="form-label">Teacher Access Code</label>
-                  <input
-                    className="input-field"
-                    type="password"
-                    placeholder="Enter access code…"
-                    value={teacherSecret}
-                    onChange={e => setTeacherSecret(e.target.value)}
-                    required
-                  />
+                  <div className="password-input-wrap" style={{ position: 'relative' }}>
+                    <input
+                      className="input-field"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter access code…"
+                      value={teacherSecret}
+                      onChange={e => setTeacherSecret(e.target.value)}
+                      required
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                    >
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -186,14 +178,23 @@ export default function AuthPage({ onLogin }) {
 
               <div className="form-group">
                 <label className="form-label">Password</label>
-                <input
-                  className="input-field"
-                  type="password"
-                  placeholder={mode === 'register' ? 'At least 6 characters' : '********'}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
+                <div className="password-input-wrap" style={{ position: 'relative' }}>
+                  <input
+                    className="input-field"
+                    type={showPassword ? "text" : "password"}
+                    placeholder={mode === 'register' ? 'At least 6 characters' : '********'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
 
               <button type="submit" className="btn btn-primary auth-submit" disabled={loading}>

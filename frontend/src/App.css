@@ -55,6 +55,14 @@
   --house-gradient:  linear-gradient(135deg, #00A86B 0%, #2E8B57 100%);
 }
 
+/* ── Neutral Theme for Teachers ───────────────────────────────────── */
+[data-house="neutral"] {
+  --house-primary:   #7c7c9a;
+  --house-secondary: #a8a8b3;
+  --house-glow:      rgba(124, 124, 154, 0.3);
+  --house-gradient:  linear-gradient(135deg, #7c7c9a 0%, #a8a8b3 100%);
+}
+
 /* ── Global Reset ───────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -183,9 +191,11 @@ body {
   background: rgba(255,255,255,0.04);
   border: 1px solid;
   border-radius: 12px; padding: 0.35rem 0.75rem;
-  transition: background 0.2s;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
 }
+.user-badge.is-clickable { cursor: pointer; }
 .user-badge:hover { background: rgba(255,255,255,0.07); }
+.user-badge.is-clickable:hover { transform: translateY(-1px); box-shadow: 0 4px 12px var(--house-glow); }
 .user-avatar {
   width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
@@ -226,56 +236,103 @@ body {
   /* Removed animation as requested */
 }
 
-/* ── Golden Snitch ────────────────────────────────────────────────── */
-.golden-snitch {
+.golden-snitch-dynamic {
   position: fixed;
-  top: 10%; left: -50px;
-  width: 40px; height: 40px;
-  background: radial-gradient(circle at 30% 30%, #ffd700, #b8860b);
+  top: 0; left: 0;
+  width: 32px; height: 32px;
+  background: radial-gradient(circle at 30% 30%, #ffdf2b, #b8860b 80%, #765506);
   border-radius: 50%;
-  box-shadow: 0 0 15px #ffd700, inset -2px -2px 5px rgba(0,0,0,0.4);
+  box-shadow: 0 0 12px #ffc107, inset -2px -2px 6px rgba(0,0,0,0.5);
   z-index: 1000;
   pointer-events: none;
-  animation: snitch-fly 20s cubic-bezier(0.25, 0.1, 0.25, 1) infinite;
+  transition: transform 3s cubic-bezier(0.3, 0.9, 0.7, 1);
+  will-change: transform;
 }
 .snitch-wing {
   position: absolute;
-  top: 0px;
-  width: 24px;
+  top: 4px;
+  width: 28px;
   height: 8px;
-  background: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.85);
   border-radius: 50% 50% 0 0;
-  box-shadow: 0 0 10px rgba(255,255,255,0.5);
+  box-shadow: 0 0 8px rgba(255,255,255,0.6);
+  backdrop-filter: blur(2px);
 }
 .snitch-wing.left {
-  right: 18px;
+  right: 14px;
   transform-origin: bottom right;
-  animation: flutter-left 0.05s linear infinite alternate;
+  animation: flutter-left 0.04s linear infinite alternate;
 }
 .snitch-wing.right {
-  left: 18px;
+  left: 14px;
   transform-origin: bottom left;
-  animation: flutter-right 0.05s linear infinite alternate;
+  animation: flutter-right 0.04s linear infinite alternate;
 }
 @keyframes flutter-left {
-  0% { transform: rotate(-20deg) skewX(-20deg); }
-  100% { transform: rotate(-60deg) skewX(-40deg); }
+  0% { transform: rotate(-10deg) skewX(-20deg); }
+  100% { transform: rotate(-70deg) skewX(-40deg); }
 }
 @keyframes flutter-right {
-  0% { transform: rotate(20deg) skewX(20deg); }
-  100% { transform: rotate(60deg) skewX(40deg); }
+  0% { transform: rotate(10deg) skewX(20deg); }
+  100% { transform: rotate(70deg) skewX(40deg); }
 }
 @keyframes snitch-fly {
-  0%   { transform: translate(0, 0) scale(0.8); opacity: 0; }
+  0%   { transform: translate(-10vw, 20vh) scale(0.6) rotate(-20deg); opacity: 0; }
   5%   { opacity: 1; }
-  15%  { transform: translate(25vw, -10vh) scale(1.2); }
-  25%  { transform: translate(45vw, 15vh) scale(0.9); }
-  35%  { transform: translate(35vw, 25vh) scale(1.1); }
-  50%  { transform: translate(75vw, -5vh) scale(0.7); }
-  70%  { transform: translate(90vw, 30vh) scale(1.5); }
-  85%  { transform: translate(110vw, 10vh) scale(1); opacity: 1; }
-  90%  { transform: translate(120vw, 10vh) scale(1); opacity: 0; }
-  100% { transform: translate(120vw, 10vh) scale(1); opacity: 0; }
+  15%  { transform: translate(15vw, -5vh) scale(1.1) rotate(15deg); }
+  25%  { transform: translate(35vw, 30vh) scale(0.8) rotate(-45deg); }
+  35%  { transform: translate(45vw, 15vh) scale(1.2) rotate(30deg); }
+  50%  { transform: translate(65vw, -10vh) scale(0.7) rotate(-10deg); }
+  70%  { transform: translate(85vw, 40vh) scale(1.3) rotate(60deg); }
+  85%  { transform: translate(110vw, 10vh) scale(1) rotate(0deg); opacity: 1; }
+  90%  { transform: translate(120vw, 10vh) scale(0.8) rotate(20deg); opacity: 0; }
+  100% { transform: translate(120vw, 10vh) scale(0.8); opacity: 0; }
+}
+
+
+/* ── Login Intro Overlay ───────── */
+.login-intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-dark);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: intro-fade-out 0.5s ease 2s forwards;
+}
+.login-intro-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  animation: intro-scale-up 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.login-intro-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--house-color);
+  text-shadow: 0 0 15px var(--house-color);
+  opacity: 0;
+  animation: intro-text-reveal 1s ease 0.5s forwards;
+}
+
+@keyframes intro-scale-up {
+  0% { transform: scale(0.8); opacity: 0; filter: blur(10px); }
+  30% { transform: scale(1.1); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+@keyframes intro-text-reveal {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes intro-fade-out {
+  0% { opacity: 1; visibility: visible; }
+  100% { opacity: 0; visibility: hidden; }
 }
 
 

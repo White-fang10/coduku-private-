@@ -1,0 +1,200 @@
+.profile-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: fade-in 0.3s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.profile-modal-content {
+  width: 100%;
+  max-width: 450px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border-color: var(--house-primary, #6c3de8);
+  animation: modal-slide-up 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-slide-up {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.profile-modal-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  background: var(--house-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.avatar-grid-wrapper {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.avatar-list {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.avatar-list::-webkit-scrollbar {
+  height: 6px;
+}
+.avatar-list::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+}
+.avatar-list::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+
+.avatar-choice {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.avatar-choice:hover {
+  background: rgba(255,255,255,0.1);
+  transform: translateY(-2px);
+}
+
+.avatar-choice.selected {
+  border-color: var(--char-color, var(--house-primary));
+  box-shadow: 0 0 15px var(--char-color, var(--house-primary));
+  background: rgba(255,255,255,0.15);
+}
+
+.avatar-choice-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.badges-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.mini-badge-v2 {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 30px;
+  cursor: help;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.mini-badge-v2:hover {
+  transform: translateY(-2px) scale(1.05);
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.3);
+}
+
+.mb-v2-glow {
+  position: absolute;
+  inset: 0;
+  background: var(--rarity-color, transparent);
+  opacity: 0.1;
+  filter: blur(10px);
+}
+
+.mini-badge-v2.common    { --rarity-color: #10b981; }
+.mini-badge-v2.uncommon  { --rarity-color: #38bdf8; }
+.mini-badge-v2.rare      { --rarity-color: #a78bfa; }
+.mini-badge-v2.epic      { --rarity-color: #8b5cf6; }
+.mini-badge-v2.legendary { --rarity-color: #d4af37; }
+.mini-badge-v2.mythic    { --rarity-color: #f0abfc; }
+
+.mini-badge-v2[class*="common"], 
+.mini-badge-v2[class*="uncommon"], 
+.mini-badge-v2[class*="rare"], 
+.mini-badge-v2[class*="epic"],
+.mini-badge-v2[class*="legendary"],
+.mini-badge-v2[class*="mythic"] {
+  border-color: var(--rarity-color, rgba(255,255,255,0.1));
+}
+
+.mb-v2-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 5px var(--rarity-color));
+  z-index: 1;
+}
+
+.mb-v2-icon {
+  font-size: 1.2rem;
+  z-index: 1;
+}
+
+.mb-v2-info {
+  z-index: 1;
+}
+
+.mb-v2-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+}

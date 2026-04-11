@@ -1,0 +1,332 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - auth
+      - judge
+      - leaderboard
+      - mentor
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  auth:
+    build:
+      context: ./backend
+      dockerfile: services/auth_service/Dockerfile
+    environment:
+      SERVICE_NAME: auth
+      SERVICE_PORT: 8001
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      UPSTASH_REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # JUDGE0 - CODE EXECUTION ENGINE
+  judge0:
+    image: judge0/judge0:1.13.0
+    container_name: judge0_server
+    privileged: true
+    ports:
+      - "2358:2358"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2358/"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 180s   # 3 minutes startup time
+    environment:
+      # Database Configuration
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/judge0db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      
+      # Server Configuration
+      API_BASE_URL: http://localhost:2358
+      ENABLE_LOGGING: "true"
+      LOG_LEVEL: info
+      
+      # Resource Limits
+      MEMORY_LIMIT: 262144    # 256 MB per submission
+      CPU_TIME_LIMIT: 10      # 10 seconds per submission
+      
+      # Queue Configuration
+      MAX_QUEUE_SIZE: 1000
+      MAX_SUBMISSION_SIZE: 4096
+      
+      # Server Processes
+      RAILS_MAX_THREADS: 16
+      RAILS_SERVER_PROCESSES: 2
+      
+      # Rails Environment
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      
+      # WSL2 Compatibility
+      USE_ADVANCED_CGROUPS: "false"
+      ENABLE_BATCHED_RUNS: "false"
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    volumes:
+      - judge0_data:/var/lib/judge0
+      - ./judge0.conf.yml:/api/config/judge0.conf:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    
+    networks:
+      - coduku
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1.5'
+          memory: 1G
+
+  judge0-worker:
+    image: judge0/judge0:1.13.0
+    container_name: judge0_worker
+    privileged: true
+    command: bash -c "cd /api && QUEUES='*' bundle exec rake resque:work"
+    healthcheck:
+      test: ["CMD-SHELL", "cd /api && bundle exec rails runner 'puts Resque.workers.any? ? 0 : 1' 2>/dev/null | grep -q 0 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      judge0:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/judge0db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      WORKER_COUNT: 2
+    networks:
+      - coduku
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1.5'
+          memory: 1G
+
+  judge:
+    build: ./backend/services/judge_service
+    depends_on:
+      judge0:
+        condition: service_healthy
+      judge0-worker:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      # Judge0 Configuration
+      JUDGE0_URL: http://judge0:2358
+      JUDGE0_TIMEOUT: 60
+      JUDGE0_API_KEY: ${JUDGE0_API_KEY:-}
+      
+      # Database Configuration
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+      POSTGRES_POOL_SIZE: 20
+      POSTGRES_POOL_TIMEOUT: 30
+      
+      # Resource Limits
+      MAX_SUBMISSION_SIZE: 4096
+      TIME_LIMIT_SECONDS: 10
+      MEMORY_LIMIT_MB: 262144
+      
+      # Logging
+      LOG_LEVEL: INFO
+      
+      # Leaderboard Service
+      LEADERBOARD_URL: http://leaderboard:8003
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend/services/judge_service:/app
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
+
+  leaderboard:
+    build:
+      context: ./backend
+      dockerfile: services/leaderboard_service/Dockerfile
+    environment:
+      SERVICE_NAME: leaderboard
+      SERVICE_PORT: 8003
+      UPSTASH_REDIS_URL: redis://redis:6379/2
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+    ports:
+      - "8003:8003"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mentor:
+    build:
+      context: ./backend
+      dockerfile: services/mentor_service/Dockerfile
+    environment:
+      SERVICE_NAME: mentor
+      SERVICE_PORT: 8004
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CHROMADB_URL: http://chromadb:8000
+      UPSTASH_REDIS_URL: redis://redis:6379/3
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+    ports:
+      - "8004:8004"
+    depends_on:
+      - chromadb
+      - redis
+      - postgres
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coduku
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_db.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  chromadb:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      ALLOW_RESET: "TRUE"
+    volumes:
+      - chromadb_data:/chroma/chroma_data
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      REACT_APP_API_URL: http://localhost/api/v1
+    depends_on:
+      - gateway
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+volumes:
+  postgres_data:
+  chromadb_data:
+  judge0_data:
+
+networks:
+  coduku:
+    driver: bridge

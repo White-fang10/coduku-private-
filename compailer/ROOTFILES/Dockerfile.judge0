@@ -1,0 +1,11 @@
+# Custom Judge0 image with Node 18 pre-installed
+FROM judge0/judge0:1.13.0
+
+# Install Node 18 (replaces Node 12 which crashes with SIGILL on WSL2)
+RUN cd /tmp \
+ && wget -q https://nodejs.org/dist/v18.20.4/node-v18.20.4-linux-x64.tar.xz -O node18.tar.xz \
+ && tar -xf node18.tar.xz \
+ && cp node-v18.20.4-linux-x64/bin/node /usr/bin/node18 \
+ && chmod +x /usr/bin/node18 \
+ && rm -rf node18.tar.xz node-v18.20.4-linux-x64 \
+ && /usr/bin/node18 --version

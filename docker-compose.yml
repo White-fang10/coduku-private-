@@ -1,46 +1,332 @@
-version: '3.8'
-
 services:
+
+  # ═══════════════════════════════════════════
+  # INFRASTRUCTURE
+  # ═══════════════════════════════════════════
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coduku
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./compailer/ROOTFILES/init_judge0_db.sql:/docker-entrypoint-initdb.d/00_judge0db.sql:ro
+      - ./compailer/ROOTFILES/init_db.sql:/docker-entrypoint-initdb.d/01_coduku.sql:ro
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   mongo:
-    image: mongo:6
-    container_name: ch_mongo
-    restart: unless-stopped
+    image: mongo:7
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - coduku
+
+  chromadb:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - "8000:8000"
     environment:
-      MONGO_INITDB_DATABASE: coding_platform
+      ALLOW_RESET: "TRUE"
+    volumes:
+      - chromadb_data:/chroma/chroma_data
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ═══════════════════════════════════════════
+  # JUDGE0 — Code Execution Engine
+  # ═══════════════════════════════════════════
+
+  judge0-server:
+    build:
+      context: ./compailer/ROOTFILES
+      dockerfile: Dockerfile.judge0
+    image: coduku-judge0:latest
+    container_name: judge0_server
+    privileged: true
+    ports:
+      - "2358:2358"
+    restart: unless-stopped
+    environment:
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: judge0db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      RAILS_MAX_THREADS: "10"
+      REDIS_URL: redis://redis:6379/1
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "1"
+      # WSL2/Windows cgroup v2 compatibility
+      ENABLE_WAIT_RESULT: "true"
+      ISOLATE_CGROUP_ENABLE: "false"
+      # Server-side maximums — within Judge0 hard limits
+      CPU_TIME_LIMIT: "10"
+      WALL_TIME_LIMIT: "15"
+      MEMORY_LIMIT: "4194304"
+      MAX_MEMORY_LIMIT: "4194304"
+      MAX_PROCESSES_AND_OR_THREADS: "1200"
+      MAX_MAX_PROCESSES_AND_OR_THREADS: "1200"
+      ENABLE_NETWORK: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - judge0_data:/var/lib/judge0
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:2358/system_info || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 120s
+
+  judge0-worker:
+    build:
+      context: ./compailer/ROOTFILES
+      dockerfile: Dockerfile.judge0
+    image: coduku-judge0:latest
+    container_name: judge0_worker
+    privileged: true
+    command: bash -c "cd /api && QUEUES='*' bundle exec rake resque:work"
+    restart: unless-stopped
+    environment:
+      RAILS_ENV: production
+      RAILS_LOG_TO_STDOUT: "true"
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: judge0db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      RAILS_MAX_THREADS: "10"
+      REDIS_URL: redis://redis:6379/1
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "1"
+      ENABLE_WAIT_RESULT: "true"
+      ISOLATE_CGROUP_ENABLE: "false"
+      MEMORY_LIMIT: "4194304"
+      MAX_MEMORY_LIMIT: "4194304"
+      MAX_PROCESSES_AND_OR_THREADS: "1200"
+      MAX_MAX_PROCESSES_AND_OR_THREADS: "1200"
+    depends_on:
+      judge0-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - coduku
+
+  # Patches Judge0 language configs after server is healthy (survives restarts)
+  judge0-patcher:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: postgres
+    command: >
+      sh -c "
+        echo 'Waiting for judge0-server...' &&
+        until pg_isready -h postgres -U postgres; do sleep 2; done &&
+        sleep 5 &&
+        psql -h postgres -U postgres -d judge0db -f /patches/patch_languages.sql &&
+        echo 'Language patches applied successfully.'
+      "
+    volumes:
+      - ./compailer/ROOTFILES/patch_languages.sql:/patches/patch_languages.sql:ro
+    depends_on:
+      judge0-server:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - coduku
+
+  # ═══════════════════════════════════════════
+  # CODUKU MICROSERVICES
+  # ═══════════════════════════════════════════
+
+  judge:
+    build:
+      context: ./compailer/services/judge_service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      JUDGE0_URL: http://judge0-server:2358
+      JUDGE0_TIMEOUT: "60"
+      JUDGE0_API_KEY: ""
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+      LOG_LEVEL: INFO
+      LEADERBOARD_URL: http://leaderboard:8003
+    depends_on:
+      judge0-server:
+        condition: service_healthy
+      judge0-worker:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - coduku
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  leaderboard:
+    build:
+      context: ./compailer/services/leaderboard_service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      SERVICE_NAME: leaderboard
+      SERVICE_PORT: "8003"
+      UPSTASH_REDIS_URL: redis://redis:6379/2
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  auth:
+    build:
+      context: ./compailer/services/auth_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      SERVICE_NAME: auth
+      SERVICE_PORT: "8001"
+      JWT_SECRET: ${JWT_SECRET:-coduku-dev-secret}
+      UPSTASH_REDIS_URL: redis://redis:6379/0
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - coduku
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  mentor:
+    build:
+      context: ./compailer/services/mentor_service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      SERVICE_NAME: mentor
+      SERVICE_PORT: "8004"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      CHROMADB_URL: http://chromadb:8000
+      UPSTASH_REDIS_URL: redis://redis:6379/3
+      POSTGRES_URL: postgresql://postgres:postgres@postgres:5432/coduku
+    depends_on:
+      - chromadb
+      - redis
+      - postgres
+    networks:
+      - coduku
+
+  # ═══════════════════════════════════════════
+  # LEGACY FLASK BACKEND
+  # ═══════════════════════════════════════════
 
   backend:
     build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: ch_backend
-    restart: unless-stopped
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "5000:5000"
     environment:
       MONGO_URI: mongodb://mongo:27017/coding_platform
-      JWT_SECRET_KEY: codehouse-docker-secret-change-in-prod
-      FLASK_ENV: production
-      FLASK_DEBUG: "False"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-codehouse-secret-key-change-in-prod}
+      TEACHER_SECRET: ${TEACHER_SECRET:-pranesh}
     depends_on:
       - mongo
+    networks:
+      - coduku
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: ch_frontend
-    restart: unless-stopped
+  # ═══════════════════════════════════════════
+  # GATEWAY
+  # ═══════════════════════════════════════════
+
+  gateway:
+    image: nginx:alpine
     ports:
-      - "3000:80"
-    environment:
-      REACT_APP_API_URL: http://localhost:5000
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - backend
+      - auth
+      - judge
+      - leaderboard
+    networks:
+      - coduku
 
 volumes:
+  postgres_data:
   mongo_data:
+  chromadb_data:
+  judge0_data:
+
+networks:
+  coduku:
+    driver: bridge

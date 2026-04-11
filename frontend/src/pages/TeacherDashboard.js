@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './AdminPanel.css';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const EMPTY_TC = { input: '', output: '', function_name: 'solution' };
 const EMPTY_Q  = {
@@ -13,8 +13,8 @@ export default function TeacherDashboard({ user, token }) {
   const [tab, setTab]           = useState('questions');
   const [questions, setQuestions]= useState([]);
   const [compQId, setCompQId]   = useState(null);
-  const [compStart, setCompStart]= useState(17);
-  const [compEnd, setCompEnd]   = useState(22);
+  const [compStart, setCompStart]= useState('17:00');
+  const [compEnd, setCompEnd]   = useState('22:00');
   const [form, setForm]         = useState({ ...EMPTY_Q, test_cases: [{ ...EMPTY_TC }] });
   const [editId, setEditId]     = useState(null);
   const [saving, setSaving]     = useState(false);
@@ -37,8 +37,8 @@ export default function TeacherDashboard({ user, token }) {
       const res = await fetch(`${API}/api/competition/status`);
       const data = await res.json();
       setCompQId(data.question_id);
-      if (data.start_hour) setCompStart(data.start_hour);
-      if (data.end_hour) setCompEnd(data.end_hour);
+      if (data.start_time) setCompStart(data.start_time);
+      if (data.end_time) setCompEnd(data.end_time);
     } catch (e) {}
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -78,11 +78,11 @@ export default function TeacherDashboard({ user, token }) {
       const res = await fetch(`${API}/api/admin/competition`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question_id: qId, start_hour: Number(compStart), end_hour: Number(compEnd) }),
+        body: JSON.stringify({ question_id: qId, start_time: compStart, end_time: compEnd }),
       });
       if (!res.ok) throw new Error('Assignment failed');
       setCompQId(qId);
-      setMsg(`🏆 Competition problem assigned successfully for ${compStart}:00 to ${compEnd}:00!`);
+      setMsg(`🏆 Competition problem assigned successfully for ${compStart} to ${compEnd}!`);
     } catch (err) {
       setError(err.message);
     }
@@ -194,11 +194,11 @@ export default function TeacherDashboard({ user, token }) {
           <div className="admin-list-header" style={{flexWrap: 'wrap', gap: '1rem'}}>
             <span className="ql-count">Current Active ID: {compQId || 'None'}</span>
             <div style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
-              <label style={{color: '#a8a8b3', fontSize: '0.85rem'}}>Start Hr (0-23):
-                <input type="number" min="0" max="23" value={compStart} onChange={e => setCompStart(e.target.value)} style={{marginLeft: '0.5rem', width: '60px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '0.2rem', borderRadius: '5px'}}/>
+              <label style={{color: '#a8a8b3', fontSize: '0.85rem'}}>From:
+                <input type="time" value={compStart} onChange={e => setCompStart(e.target.value)} style={{marginLeft: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '0.2rem', borderRadius: '5px'}}/>
               </label>
-              <label style={{color: '#a8a8b3', fontSize: '0.85rem'}}>End Hr (0-24):
-                <input type="number" min="1" max="24" value={compEnd} onChange={e => setCompEnd(e.target.value)} style={{marginLeft: '0.5rem', width: '60px', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '0.2rem', borderRadius: '5px'}}/>
+              <label style={{color: '#a8a8b3', fontSize: '0.85rem'}}>To:
+                <input type="time" value={compEnd} onChange={e => setCompEnd(e.target.value)} style={{marginLeft: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '0.2rem', borderRadius: '5px'}}/>
               </label>
             </div>
           </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './AdminPanel.css';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const EMPTY_TC = { input: '', output: '', function_name: 'solution' };
 const EMPTY_Q  = {

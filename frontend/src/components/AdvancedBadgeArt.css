@@ -1,0 +1,257 @@
+/* AdvancedBadgeArt.css - Complex CSS animations for modular SVG icons */
+
+.adv-badge-art {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adv-badge-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.05), transparent 70%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.adv-badge-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.art-layer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.icon-base {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.icon-overlay {
+  position: absolute;
+  z-index: 3;
+}
+
+/* Animations */
+@keyframes pulse-glow-icon {
+  0% { transform: scale(1); filter: drop-shadow(0 0 5px currentColor); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 15px currentColor); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 5px currentColor); }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-rev {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes float-icon {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.spin { animation: spin-slow 8s linear infinite; }
+.spin-reverse { animation: spin-rev 6s linear infinite; }
+.pulse { animation: pulse-glow-icon 2s ease-in-out infinite; }
+.float { animation: float-icon 3s ease-in-out infinite; }
+
+/* Streak Specific */
+.top-glow { filter: drop-shadow(0 -8px 10px currentColor); }
+.tilt { transform: rotate(15deg); }
+.rotate-slow { animation: spin-slow 15s linear infinite; }
+.sigil-circle {
+  position: absolute;
+  width: 50px; height: 50px;
+  border: 2px dashed currentColor;
+  border-radius: 50%;
+  opacity: 0.6;
+}
+.spin-stop { animation: spin-slow 4s steps(4) infinite; }
+.phoenix-flame { filter: drop-shadow(0 5px 15px currentColor); transform: scale(1.1); }
+.code-pulse { animation: pulse-glow-icon 3s ease-in-out infinite; transform: translateY(8px); }
+
+/* Performance Specific */
+.flash { animation: flash-anim 2s infinite; }
+@keyframes flash-anim {
+  0%, 90% { opacity: 1; transform: translate(10px, -10px) scale(1); }
+  95% { opacity: 0; transform: translate(10px, -10px) scale(1.2); }
+  100% { opacity: 1; transform: translate(10px, -10px) scale(1); }
+}
+.zap-pulse { animation: zap-anim 1s ease-in-out infinite alternate; }
+@keyframes zap-anim { from { filter: drop-shadow(0 0 5px #60a5fa); } to { filter: drop-shadow(0 0 25px #60a5fa); transform: scale(1.1); } }
+.galaxy-spiral {
+  position: absolute;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent, #c084fc, transparent);
+  opacity: 0.4;
+  filter: blur(4px);
+}
+.fill-anim {
+  position: relative;
+  overflow: hidden;
+}
+.fill-anim::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(to top, #f59e0b 0%, #f59e0b 40%, transparent 40%);
+  animation: flask-fill 3s ease-in-out infinite;
+}
+@keyframes flask-fill { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+.pulse-ring { border-radius: 50%; box-shadow: 0 0 0 0 rgba(212,175,55,0.7); animation: p-ring 2s infinite; }
+@keyframes p-ring { 100% { box-shadow: 0 0 0 15px rgba(212,175,55,0); } }
+
+/* Volume Specific */
+.rune-glow { position: absolute; width: 10px; height: 10px; border-radius: 50%; filter: blur(8px); opacity: 0.8; }
+.glow-pulse { filter: drop-shadow(0 0 15px currentColor); animation: float-icon 4s infinite; }
+.thick-glow { filter: drop-shadow(0 0 20px currentColor); }
+.corona-glow { filter: drop-shadow(0 0 25px currentColor); }
+.float-heavy { animation: float-icon 6s ease-in-out infinite; }
+.throne-bg { position: absolute; width: 40px; height: 50px; background: rgba(240,171,252,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; box-shadow: 0 0 15px rgba(240,171,252,0.3); }
+
+/* Competitive */
+.house-shield { filter: drop-shadow(0 0 12px currentColor); }
+.triangle-float .s1 { top: 10px; left: 30px; animation: float-icon 2s infinite; }
+.triangle-float .s2 { top: 40px; left: 10px; animation: float-icon 2s infinite 0.5s; }
+.triangle-float .s3 { top: 40px; left: 50px; animation: float-icon 2s infinite 1s; }
+.shoot-up { animation: shoot 2s infinite; }
+@keyframes shoot { 0% { transform: translateY(20px) scale(0.5); opacity: 0; } 50% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-20px) scale(0.5); opacity: 0; } }
+
+/* Battle */
+.cross-left { transform: rotate(-45deg); left: 15px; }
+.cross-right { transform: rotate(45deg); right: 15px; }
+.clash-shake { animation: shake 3s infinite; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); } 20%, 40%, 60%, 80% { transform: translateX(2px); } }
+.arena-shield { border-radius: 50%; box-shadow: inset 0 0 15px rgba(239,68,68,0.5); }
+.slash-anim { animation: slash 1s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite; }
+@keyframes slash { 0% { transform: rotate(-45deg) translate(-10px, -10px); } 50% { transform: rotate(45deg) translate(10px, 10px); } 100% { transform: rotate(-45deg) translate(-10px, -10px); } }
+.trail-flame { left: 10px; bottom: 10px; opacity: 0.7; }
+
+/* Relay */
+.chain-link { filter: drop-shadow(0 0 10px currentColor); }
+.magic-ribbon { width: 40px; height: 10px; background: linear-gradient(to right, transparent, #38bdf8, transparent); border-radius: 5px; animation: flow 2s infinite alternate; }
+@keyframes flow { from { transform: skewX(-20deg) scaleX(0.8); } to { transform: skewX(20deg) scaleX(1.2); } }
+.core-pulse { animation: pulse-glow-icon 1.5s infinite; }
+
+/* Debug */
+.magic-net { position: absolute; width: 40px; height: 40px; border: 1px dashed rgba(16,185,129,0.5); border-radius: 50%; animation: spin-slow 10s infinite; }
+.broken-code { transform: rotate(15deg); opacity: 0.5; }
+.split-brain { position: relative; }
+.ai-glow-half { position: absolute; left: 50%; top: 10%; bottom: 10%; width: 50%; background: linear-gradient(to right, transparent, rgba(129,140,248,0.4)); filter: blur(4px); }
+.dark-orb { border-radius: 50%; background: radial-gradient(circle at 30% 30%, #4c1d95, #1e1e1e); }
+.light-leak { filter: drop-shadow(0 0 10px #ddd); animation: flicker 2s infinite; }
+@keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Special */
+.veil-float { opacity: 0.6; animation: float-icon 4s infinite alternate; filter: drop-shadow(0 0 15px currentColor); }
+.ash-rise { transform: translateY(10px); animation: rise 3s infinite; }
+@keyframes rise { 0% { transform: translateY(10px) scale(0.9); opacity: 0.5; } 50% { transform: translateY(0) scale(1.1); opacity: 1; } 100% { transform: translateY(-10px) scale(0.9); opacity: 0; } }
+.night-glow { filter: drop-shadow(0 0 20px #818cf8); }
+.z-float { animation: z-rise 2s infinite; right: 10px; top: 10px; opacity: 0.6; }
+@keyframes z-rise { 0% { transform: translate(0, 0) scale(0.5); opacity: 0; } 50% { transform: translate(5px, -5px) scale(1); opacity: 1; } 100% { transform: translate(10px, -10px) scale(1.5); opacity: 0; } }
+.dark-forest { filter: drop-shadow(0 0 10px #4c1d95); }
+.glow-path { position: absolute; bottom: 10px; width: 20px; height: 4px; background: #c084fc; border-radius: 2px; box-shadow: 0 0 8px #c084fc; }
+.shatter-cryst { animation: shatter 3s infinite; }
+@keyframes shatter { 0%, 90% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 10px #38bdf8); } 95% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* House */
+.house-pulse { animation: pulse-glow-icon 2s infinite; }
+.magic-pillar { width: 14px; height: 40px; background: linear-gradient(to top, rgba(212,175,55,0.8), transparent); border-radius: 2px; }
+.aura-burst { animation: spin-slow 5s linear infinite; filter: drop-shadow(0 0 15px #f0abfc); }
+.core-star { filter: drop-shadow(0 0 10px #fff); }
+
+
+/* Particles System */
+.badge-art-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.spark-float .particle {
+  left: 50%; top: 50%;
+  animation: spark-float-anim 2s infinite;
+  animation-delay: calc(var(--i) * 0.4s);
+}
+@keyframes spark-float-anim {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+  50% { transform: translate(calc(-20px + var(--i)*10px), calc(-30px + var(--i)*-5px)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-30px + var(--i)*15px), calc(-40px + var(--i)*-10px)) scale(0); opacity: 0; }
+}
+
+.sand-fall .particle {
+  left: calc(30% + var(--i)*5%); top: 40%;
+  animation: sand-fall-anim 1.5s infinite linear;
+  animation-delay: calc(var(--i) * 0.2s);
+}
+@keyframes sand-fall-anim {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(30px); opacity: 0; }
+}
+
+.bubble-up .particle {
+  left: calc(35% + var(--i)*5%); bottom: 20%;
+  animation: bubble-up-anim 2s infinite ease-in;
+  animation-delay: calc(var(--i) * 0.3s);
+}
+@keyframes bubble-up-anim {
+  0% { transform: translateY(0) scale(0.5); opacity: 0.8; }
+  100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+}
+
+.spark-burst .particle {
+  left: 50%; top: 50%;
+  animation: s-burst 1s infinite cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation-delay: calc(var(--i) * 0.2s);
+}
+@keyframes s-burst {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+  100% { transform: translate(calc(cos(var(--i) * 90deg) * 30px), calc(sin(var(--i) * 90deg) * 30px)) scale(0); opacity: 0; }
+}
+
+.ash-float .particle {
+  left: calc(40% + var(--i)*4%); bottom: 20%;
+  animation: float-up-fade 2.5s infinite;
+  animation-delay: calc(var(--i) * 0.4s);
+}
+@keyframes float-up-fade {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-30px) rotate(180deg); opacity: 0; }
+}
+
+/* Base ring */
+.badge-ring {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid;
+  border-top-color: transparent !important;
+  border-bottom-color: transparent !important;
+  animation: spin-slow infinite linear;
+}

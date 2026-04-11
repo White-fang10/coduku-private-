@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './Leaderboards.css';
 import HouseLogo from '../components/HouseLogo';
-import MagicalBadge from '../components/MagicalBadge';
 import { X } from 'lucide-react';
+import { BADGE_CATEGORIES } from '../data/badges';
+import { CHAR_SRCS } from '../data/characters';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const HOUSE_META = {
   Gryffindor: { color: '#ae0001', icon: '', gradient: 'linear-gradient(135deg,#ae0001,#d4af37)' },
@@ -71,10 +72,16 @@ export default function Leaderboards({ user, token }) {
 
   const rankMedal = (r) => r === 1 ? '1st' : r === 2 ? '2nd' : r === 3 ? '3rd' : `#${r}`;
 
+  const isTeacher = user.role === 'teacher';
+
   return (
     <div className="lb-root">
-      <h1 className="page-title">Leaderboards</h1>
-      <p className="page-subtitle">See how you and your house stack up against the competition.</p>
+      <h1 className="page-title">{isTeacher ? 'House Leaderboards' : 'Leaderboards'}</h1>
+      <p className="page-subtitle">
+        {isTeacher
+          ? 'Monitor student performance across all houses.'
+          : 'See how you and your house stack up against the competition.'}
+      </p>
 
       {/* Tabs */}
       <div className="lb-tabs">
@@ -123,7 +130,7 @@ export default function Leaderboards({ user, token }) {
                 <tbody>
                   {global.map(row => {
                     const m = HOUSE_META[row.house] || {};
-                    const isMe = row.name === user.name;
+                    const isMe = user.role !== 'teacher' && row.name === user.name;
                     return (
                       <tr key={row.rank} className={`${isMe ? 'my-row' : ''} clickable-row`} onClick={() => fetchPlayerDetails(row.id)}>
                         <td className="rank-cell">{rankMedal(row.rank)}</td>
@@ -200,7 +207,7 @@ export default function Leaderboards({ user, token }) {
                   </thead>
                   <tbody>
                     {houseMembers.map(row => {
-                      const isMe = row.name === user.name;
+                      const isMe = user.role !== 'teacher' && row.name === user.name;
                       return (
                         <tr key={row.rank} className={`${isMe ? 'my-row' : ''} clickable-row`} onClick={() => fetchPlayerDetails(row.id)}>
                           <td className="rank-cell">{rankMedal(row.rank)}</td>
@@ -231,7 +238,21 @@ export default function Leaderboards({ user, token }) {
               <X size={24} />
             </button>
             <div className="p-detail-header">
-              <HouseLogo house={selectedPlayer.house} size={90} />
+              <div className="p-logo-wrapper">
+                <HouseLogo house={selectedPlayer.house} size={90} />
+              </div>
+              
+              {selectedPlayer.character_id && CHAR_SRCS[selectedPlayer.character_id] && (
+                <div className="p-detail-char-wrap">
+                  <div className="p-detail-char-glow" style={{'--hcolor': HOUSE_META[selectedPlayer.house]?.color || '#6c3de8'}} />
+                  <img 
+                    src={CHAR_SRCS[selectedPlayer.character_id]} 
+                    alt="Character" 
+                    className="p-detail-char-img" 
+                  />
+                </div>
+              )}
+
               <h2 className="p-detail-name">{selectedPlayer.name}</h2>
               <span className="p-detail-house">{selectedPlayer.house} House</span>
             </div>
@@ -247,17 +268,45 @@ export default function Leaderboards({ user, token }) {
               </div>
             </div>
 
-            <div className="p-detail-badges">
-              <h3 className="p-badges-title">Magical Awards</h3>
-              <div className="p-badge-list">
-                {selectedPlayer.badges?.map((b, i) => (
-                  <MagicalBadge key={i} type={b?.id || b} size="sm" />
-                ))}
-                {(!selectedPlayer.badges || selectedPlayer.badges.length === 0) && (
-                  <p className="p-no-badges">No badges yet.</p>
-                )}
+            {/* Hide badges section for teachers */}
+            {user.role !== 'teacher' && (
+              <div className="p-detail-badges">
+                <h3 className="p-badges-title">Magical Awards</h3>
+                <div className="p-badge-list">
+                  {/* Dynamic Legacy Badges */}
+                  {selectedPlayer.badges?.map((b, i) => (
+                    <div key={`leg-${i}`} className="lb-mini-badge legacy" title={b.desc}>
+                      <span className="lb-mb-icon">{b.icon}</span>
+                      <span className="lb-mb-name">{b.name}</span>
+                    </div>
+                  ))}
+                  
+                  {/* Claimed Custom Badges */}
+                  {(() => {
+                    const claimedIds = selectedPlayer.claimed_badges || [];
+                    const allBadgeOptions = BADGE_CATEGORIES.flatMap(cat => cat.badges);
+                    const claimed = allBadgeOptions.filter(b => claimedIds.includes(b.id));
+                    
+                    return claimed.map((b, i) => (
+                      <div key={`custom-${i}`} className={`lb-mini-badge ${b.rarity?.toLowerCase()}`} title={b.givenFor}>
+                        <div className="lb-mb-glow" style={{'--rarity-color': b.color}} />
+                        {b.image ? (
+                          <img src={b.image} alt={b.name} className="lb-mb-img" />
+                        ) : (
+                          <span className="lb-mb-icon">{b.icon}</span>
+                        )}
+                        <span className="lb-mb-name">{b.name}</span>
+                      </div>
+                    ));
+                  })()}
+
+                  {(!selectedPlayer.badges || selectedPlayer.badges.length === 0) && 
+                   (!selectedPlayer.claimed_badges || selectedPlayer.claimed_badges.length === 0) && (
+                    <p className="p-no-badges">No badges yet.</p>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

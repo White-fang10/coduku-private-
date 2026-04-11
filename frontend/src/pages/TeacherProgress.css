@@ -1,0 +1,335 @@
+/* ── Teacher Progress Overview — Neutral Theme ─────────────────────────── */
+
+.tp-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8rem;
+  padding-bottom: 2rem;
+}
+
+/* ── Header ── */
+.tp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.8rem 2rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+}
+
+.tp-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #e8e8f0;
+  margin: 0 0 0.3rem;
+}
+
+.tp-subtitle {
+  color: #9090a8;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.tp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.tp-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  background: rgba(120,100,200,0.18);
+  border: 1px solid rgba(120,100,200,0.38);
+  border-radius: 10px;
+  color: #c4b5fd;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+.tp-btn-primary:hover {
+  background: rgba(120,100,200,0.32);
+  transform: translateY(-1px);
+}
+
+.tp-btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #a8a8b8;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+.tp-btn-secondary:hover {
+  background: rgba(255,255,255,0.09);
+  color: #e0e0f0;
+  transform: translateY(-1px);
+}
+
+.tp-btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #7878a0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-family: inherit;
+}
+.tp-btn-refresh:hover {
+  background: rgba(255,255,255,0.08);
+  color: #b0b0cc;
+}
+
+/* ── Summary Stats ── */
+.tp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+.tp-stat-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-left: 3px solid var(--scolor, rgba(255,255,255,0.15));
+  border-radius: 14px;
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition: background 0.2s;
+}
+.tp-stat-card:hover { background: rgba(255,255,255,0.06); }
+
+.tp-stat-icon {
+  display: flex;
+  opacity: 0.85;
+}
+
+.tp-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #e8e8f0;
+  line-height: 1;
+}
+
+.tp-stat-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8888a8;
+}
+
+/* ── Section Title ── */
+.tp-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8888a8;
+}
+
+/* ── House Cards ── */
+.tp-houses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.tp-house-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  padding: 1.4rem 1.4rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  position: relative;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+.tp-house-card:hover {
+  background: rgba(255,255,255,0.06);
+  transform: translateY(-2px);
+}
+
+/* rank emoji badge in top-left corner */
+.tp-house-rank-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.9rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tp-house-logo { margin-top: 0.5rem; }
+
+.tp-house-name {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tp-house-stats {
+  display: flex;
+  gap: 1.2rem;
+  margin-top: 0.2rem;
+}
+
+.tp-house-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+}
+
+.tp-hs-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e0e0f0;
+}
+
+.tp-hs-lbl {
+  font-size: 0.62rem;
+  color: #8888a8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tp-house-bar-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 0.3rem;
+}
+
+.tp-house-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.7s ease;
+  opacity: 0.85;
+}
+
+/* Top Student banner inside house card */
+.tp-house-best {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.55rem 0.75rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.tp-best-label {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #7070888;
+  color: #7878a0;
+}
+
+.tp-best-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #d0d0e8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tp-best-score {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ── Student Table ── */
+.tp-table-wrap {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.tp-table th {
+  text-align: left;
+  padding: 0.65rem 1rem;
+  color: #8888a8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.tp-table td {
+  padding: 0.65rem 1rem;
+  color: #c8c8d8;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.tp-table tbody tr:last-child td { border-bottom: none; }
+
+.tp-table-row { transition: background 0.15s; }
+.tp-table-row:hover td { background: rgba(255,255,255,0.04); }
+
+.tp-rank-cell  { color: #9090a8; font-weight: 600; min-width: 52px; }
+.tp-medal      { font-size: 1rem; }
+.tp-name-cell  { font-weight: 600; color: #dcdcec; }
+.tp-score-cell { font-weight: 700; color: #e0e0f0; }
+.tp-subs-cell  { color: #8888a8; }
+
+.tp-house-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+}
+
+.tp-empty {
+  text-align: center;
+  color: #8888a8;
+  padding: 2rem;
+  font-size: 0.875rem;
+}
+
+/* Neutral navbar icon for teacher */
+.teacher-nav-icon {
+  font-size: 2rem;
+  line-height: 1;
+}

@@ -1,32 +1,50 @@
 /**
  * pistonService.js
- * Free Piston API (https://emkc.org/api/v2/piston) wrapper.
- * Maps our internal language keys to Piston runtime names + versions.
+ * Routes code execution through the Judge Service (Judge0-backed).
+ * Falls back to the Flask backend's local executor if Judge Service is unavailable.
  */
 
-const BACKEND_API = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const JUDGE_API  = process.env.REACT_APP_JUDGE_URL  || 'http://localhost:8002';
+const BACKEND_API = process.env.REACT_APP_API_URL   || 'https://coduku-backend.onrender.com';
 
 /**
- * Run code via our own local backend (which handles execution safely).
- * @param {string} language - one of our internal language keys
- * @param {string} code     - source code to execute
- * @param {string} stdin    - optional stdin input
- * @param {string} token    - auth token
- * @returns {{ stdout: string, stderr: string, output: string, error: string|null }}
+ * Run code via the Judge Service (Judge0).
+ * Uses problem_id=1 as a scratch pad with custom stdin.
  */
 export async function runCode(language, code, stdin = '', token = '') {
+  // First try the Judge Service
+  try {
+    const res = await fetch(`${JUDGE_API}/api/v1/submissions/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        problem_id: 1,
+        language,
+        code,
+        test_cases: [{ input: stdin || '', expected_output: '' }],
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      const tc = data.test_cases?.[0];
+      const stdout = tc?.actual_output ?? '';
+      const stderr = tc?.error ?? '';
+      return { stdout, stderr, output: stdout || stderr || '(no output)', error: null };
+    }
+  } catch (_) {
+    // Judge Service not available, fall through to Flask fallback
+  }
+
+  // Fallback: Flask backend local executor
   try {
     const res = await fetch(`${BACKEND_API}/api/execute`, {
       method: 'POST',
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({
-        language,
-        code,
-        stdin,
-      }),
+      body: JSON.stringify({ language, code, stdin }),
     });
 
     if (!res.ok) {
@@ -37,12 +55,8 @@ export async function runCode(language, code, stdin = '', token = '') {
     const data = await res.json();
     const stdout = data.stdout || '';
     const stderr = data.stderr || '';
-    const output = stdout || stderr || '(no output)';
-
-    return { stdout, stderr, output, error: data.error };
+    return { stdout, stderr, output: stdout || stderr || '(no output)', error: data.error };
   } catch (e) {
     return { stdout: '', stderr: '', output: '', error: `Network error: ${e.message}` };
   }
 }
-
-

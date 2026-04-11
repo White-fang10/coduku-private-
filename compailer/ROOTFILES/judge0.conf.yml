@@ -1,0 +1,43 @@
+# Judge0 v1.13 Configuration
+# https://github.com/judge0/judge0/blob/master/config/judge0.conf
+
+####################################
+# Judge0 Server Configuration
+####################################
+
+# Allow or disallow users to set custom compiler options.
+ALLOW_ENABLE_NETWORK: false
+
+# Maximum number of processes and/or threads a program can create.
+MAX_PROCESSES_AND_OR_THREADS: 60
+
+# If true, submissions will be run as root.
+ENABLE_SUBMISSION_CACHE: false
+
+# Time after which cached submission will be deleted (seconds).
+SUBMISSION_CACHE_DURATION: 100
+
+# Maximum allowed wall-clock time (seconds).
+MAX_WALL_TIME_LIMIT: 30
+
+# Maximum allowed CPU time (seconds).
+MAX_CPU_TIME_LIMIT: 15
+
+# Maximum allowed memory (KB).
+MAX_MEMORY_LIMIT: 512000
+
+# Maximum allowed stack size (KB).
+MAX_STACK_LIMIT: 64000
+
+# Maximum allowed file size (KB).
+MAX_FILE_SIZE: 4096
+
+# Number of runs per submission.
+MAX_NUMBER_OF_RUNS: 20
+
+# Disallow network access by default.
+ENABLE_NETWORK: false
+
+# WSL2 compatibility fixes
+USE_ADVANCED_CGROUPS: false
+ENABLE_BATCHED_RUNS: false
