@@ -7,7 +7,7 @@ import ScorePopup from '../components/ScorePopup';
 import ComplexityGraphs from '../components/ComplexityGraphs';
 
 const CHATBOT_ORIGIN = process.env.REACT_APP_CHATBOT_URL || 'http://localhost:3001';
-const API            = process.env.REACT_APP_API_URL    || 'https://coduku-backend.onrender.com';
+const API            = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 /* ── Default code stubs ── */
 const DEFAULT_CODE = {

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Ngrok URL</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f4f5; margin: 0; }
+        .container { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        input { width: 100%; padding: 0.5rem; margin: 1rem 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { background: #3b82f6; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; width: 100%; }
+        button:hover { background: #2563eb; }
+        #status { margin-top: 1rem; font-size: 0.875rem; color: #16a34a; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Set Backend API URL</h2>
+        <p>Paste your temporary ngrok URL below:</p>
+        <input type="url" id="apiUrl" placeholder="https://xxxx-xx-xx.ngrok-free.app" required>
+        <button onclick="saveUrl()">Save & Connect</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // Load existing URL if it exists
+        document.getElementById('apiUrl').value = localStorage.getItem('NGROK_URL') || '';
+
+        function saveUrl() {
+            const url = document.getElementById('apiUrl').value.trim();
+            if(url) {
+                // Remove trailing slash if present
+                const cleanUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+                localStorage.setItem('NGROK_URL', cleanUrl);
+                document.getElementById('status').innerText = 'URL Saved! Redirecting to app...';
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
+        }
+    </script>
+</body>
+</html>

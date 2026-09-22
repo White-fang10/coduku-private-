@@ -5,7 +5,7 @@
  */
 
 const JUDGE_API  = process.env.REACT_APP_JUDGE_URL  || 'http://localhost:8002';
-const BACKEND_API = process.env.REACT_APP_API_URL   || 'https://coduku-backend.onrender.com';
+const BACKEND_API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL   || 'https://coduku-backend.onrender.com';
 
 /**
  * Run code via the Judge Service (Judge0).

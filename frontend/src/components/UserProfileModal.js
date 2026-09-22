@@ -3,7 +3,7 @@ import './UserProfileModal.css';
 import { CHARACTERS } from '../data/characters';
 import { BADGE_CATEGORIES } from '../data/badges';
 
-const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
+const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 export default function UserProfileModal({ user, token, onClose, onUpdate }) {
   const [name, setName] = useState(user.name || '');

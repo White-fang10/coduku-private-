@@ -5,7 +5,7 @@ import HouseLogo from '../components/HouseLogo';
 import MagicalBadge from '../components/MagicalBadge';
 import { Trophy, Code, Award, Zap, Compass, Star, Users, BarChart2, TrendingUp } from 'lucide-react';
 
-const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
+const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const HOUSE_META = {
   Gryffindor: { color: '#ae0001', rank: 'Brave',   gradient: 'linear-gradient(135deg, rgba(174,0,1,0.2), transparent)' },

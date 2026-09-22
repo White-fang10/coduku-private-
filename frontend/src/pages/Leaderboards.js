@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import { BADGE_CATEGORIES } from '../data/badges';
 import { CHAR_SRCS } from '../data/characters';
 
-const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
+const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const HOUSE_META = {
   Gryffindor: { color: '#ae0001', icon: '', gradient: 'linear-gradient(135deg,#ae0001,#d4af37)' },

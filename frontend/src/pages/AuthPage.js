@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './AuthPage.css';
 import HouseLogo from '../components/HouseLogo';
 
-const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
+const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 const HOUSES = [
   { name: 'Gryffindor', color: '#ae0001', gold: '#d4af37', trait: 'Brave & Bold' },

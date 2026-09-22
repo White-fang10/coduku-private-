@@ -3,7 +3,7 @@ import './Badges.css';
 import AdvancedBadgeArt from '../components/AdvancedBadgeArt';
 import { BADGE_CATEGORIES, RARITY_META } from '../data/badges';
 
-const API = process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
+const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 
 /* ── Components ──────────────────────────────────────────────────── */
 function RarityStars({ rarity }) {
