@@ -1,10 +1,10 @@
 import React from 'react';
 import { 
-  Wand2, IterationCw, Hourglass, Flame, Zap, ZapOff, Sparkles, 
+  Wand2, IterationCw, Hourglass, Flame, Zap, Sparkles, 
   FlaskConical, Gem, Scroll, Book, BookOpen, Shield, Crown, 
   Orbit, Star, Swords, ShieldAlert, Link, Brain, Bug, Ghost, 
-  Moon, TreePine, Hexagon, Tentacle, Rocket, Code, Award, Target, Beaker,
-  ShieldHalf, Sword, Crosshair, Feather
+  Moon, TreePine, Hexagon, Code, Award, Target,
+  ShieldHalf, Sword, Feather
 } from 'lucide-react';
 import './AdvancedBadgeArt.css';
 

@@ -11,7 +11,7 @@ import HouseLogo from './components/HouseLogo';
 import SortingCeremony from './pages/SortingCeremony';
 import UserProfileModal from './components/UserProfileModal';
 import GoldenSnitch from './components/GoldenSnitch';
-import { CHARACTERS, CHAR_SRCS } from './data/characters';
+import { CHAR_SRCS } from './data/characters';
 
 const API = localStorage.getItem('NGROK_URL') || process.env.REACT_APP_API_URL || 'https://coduku-backend.onrender.com';
 export { API };
